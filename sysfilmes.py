@@ -6,6 +6,8 @@
 # Carlos Abimael Oliveira do Nascimento, matrícula 587010
 # João Gabriel dos Santos Araújo, matrícula 582584
 
+import csv
+import os
 try:
     import unidecode
 except ImportError:
@@ -13,25 +15,21 @@ except ImportError:
     import sys
     subprocess.check_call([sys.executable, "-m", "pip", "install", "unidecode"])
     import unidecode
+try:
+  from IPython.display import clear_output
+except ImportError:
+  # Clear OutPuts for Terminals
+    def clear_output():
+      # Check the operating system name
+      if os.name == 'nt':  # For Windows
+        _ = os.system('cls')
+      else:  # For Linux, macOS, and other Unix-like systems
+        _ = os.system('clear')
 
-import csv
-from IPython.display import clear_output
-import os
 
 filmes = [] # Lista de filmes cadastrados
-total = len(filmes) # Número de filmes cadastrados
-arqcarreg = [] # Lista de arquivos carregados
-avaliacoes = [] # Lista de avaliações
-filmes_base = [] # Lista para filmes não salvos no arquivo, caso necessário
-avaliacoes_base = [] # Lista para avaliações não salvos no arquivo, caso necessário
-
-#Clear OutPuts for Terminals
-def clear_screen():
-  # Check the operating system name
-  if os.name == 'nt':  # For Windows
-    _ = os.system('cls')
-  else:  # For Linux, macOS, and other Unix-like systems
-    _ = os.system('clear')
+arqFilmes = 0
+arqAvls = 0
 
 # Mostrar Menu
 def mostra_menu(total):
@@ -45,7 +43,6 @@ def mostra_menu(total):
   result (int): Opção selecionada
   """
   clear_output()
-  clear_screen()
   print(f"""*********** SysFilmes ***********
 ******* Existem: {total} filmes *******
 *********************************
@@ -68,7 +65,6 @@ def mostra_menu(total):
     except:
       print("Digite um número!")
   clear_output()
-  clear_screen()
   return result
 
 # Buscar Título de Filme
@@ -111,7 +107,7 @@ def consulta_titulo(filmes):
     return consulta_titulo(filmes)
 
 # Cadastrar um Filme na Lista
-def cria_filme(filmes,titulo=None,ano=None,genero=None):
+def cria_filme(filmes,titulo=None,ano=None,genero=None,main=False):
   """
   Função: Ao escolher a Opção 1, cadastra um filme novo na lista, se o filme não existir (verificação através do busca_titulo)
 
@@ -125,8 +121,7 @@ def cria_filme(filmes,titulo=None,ano=None,genero=None):
 
 
   Retorna:
-  filmes.append(filme) ou filmes_base.append(filme): Vai adicionar o filme cadastrado na lista 'filmes' se for carregado um arquivo, e na lista 'filmes_base' caso nenhum arquivo tenha sido carregado
-  """
+  filmes.append(filme) ou None: Vai adicionar o filme cadastrado na lista 'filmes'  """
 
   try:
     if titulo == None:
@@ -142,8 +137,10 @@ def cria_filme(filmes,titulo=None,ano=None,genero=None):
              "Estrelas": float(0),
              "Número de Avaliações": int(0)}
       filmes.append(filme)
-      filme = [titulo,int(ano),genero]
-      return [f"Filme: {titulo} Cadastrado com sucesso",filme]
+      if main == False:
+        filme = [titulo,int(ano),genero]
+        atualiza_filmes(filme)
+      return (f"Filme: {titulo} Cadastrado com sucesso")
     return None
   except Exception as e:
      print(f"Erro {e}")
@@ -238,7 +235,7 @@ def lista_estrelas(num, filmes):
     return lista_estrelas(None, filmes)
 
 # Avalia um filme da lista
-def avalia_filme(filmes,titulo=None,avl=None, modo_arquivo=False):
+def avalia_filme(filmes,titulo=None,avl=None, main=False):
   """
   Função: Ao escolher a opção 2, avalia um filme existente na lista
 
@@ -264,21 +261,17 @@ def avalia_filme(filmes,titulo=None,avl=None, modo_arquivo=False):
          return avalia_filme(filmes,titulo)
       filme['Estrelas'] = (filme['Estrelas'] * filme['Número de Avaliações'] + avl)/(filme['Número de Avaliações']+1) 
       filme['Número de Avaliações'] = filme['Número de Avaliações']+1
-      if 'avaliacoes.csv' in arqcarreg:
-        avaliacoes.append({'Titulo': titulo, 'Estrelas': avl})
-      else:
-        avaliacoes_base.append({'Titulo': titulo, 'Estrelas': avl})
-      if not modo_arquivo:
-        return [f"Filme: {titulo} foi Avaliado com Sucesso",titulo,avl]
+      if main == False:
+        atualiza_avaliacoes(titulo,avl)
+      return [f"Filme: {titulo} foi Avaliado com Sucesso"]
     else:
-      if not modo_arquivo:
-        return "Filme não encontrado"
+      return "Filme não encontrado"
   except Exception as e:
     print("ERRO -> ", e, "\nTente Novamente!")
     return avalia_filme(filmes,titulo,avl)
 
 # Carrega um arquivo com filmes
-def carrega_filmes(filmes, arq=None):
+def carrega_filmes(filmes, arq=None, main=False):
   """
   Função: Ao escolher a opção 7, adiciona os filmes de um arquivo para a lista
 
@@ -299,20 +292,19 @@ def carrega_filmes(filmes, arq=None):
         titulo = filme[0]
         ano = int(filme[1])
         genero = filme[2].strip("\n")
-        cria_filme(filmes, titulo, ano, genero)
+        cria_filme(filmes, titulo, ano, genero,main)
     return("Filmes carregados com sucesso!")
   except Exception as e:
     print(f"ERRO-> {e}")
     return(carrega_filmes(filmes))
 
 # Carrega um arquivo com avaliações
-def carrega_avaliacoes(filmes,arq=None, arqcarreg=arqcarreg):
+def carrega_avaliacoes(filmes,arq=None, main=False):
   """
   Função: Ao escolher a opção 8, adiciona as avaliações de um arquivo aos filmes existentes na lista
 
   Parâmetros:
   filmes (list): A lista de filmes
-  arqcarreg (list): A lista com os arquivos já carregados
 
   Retorna:
   Adiciona as avaliações aos filmes na lista
@@ -321,53 +313,38 @@ def carrega_avaliacoes(filmes,arq=None, arqcarreg=arqcarreg):
     nAvl = 0
     if arq == None:
       arq = input("Nome do arquivo: ")
-    if len(arqcarreg) == 0 or  not (arq in arqcarreg):
-      with open(f'{arq}', 'r') as arq_avl:
-        avl_lista = arq_avl.readlines()
-        avl_lista.pop(0)
-        for avl in avl_lista:
-          avl = avl.split(",")
-          titulo = avl[0]
-          avaliacao = int(avl[1].strip("\n"))
-          if avaliacao > 5 or avaliacao < 0:
-            return "Arquivo Incompatível"
-          nAvl += 1
-          avalia_filme(filmes,titulo,avaliacao, modo_arquivo=True)
-        arq_avl.close()
-      for av in avaliacoes_base:
-        avaliacoes.append(av)
-      atualiza_avaliacoes(av['Titulo'],av['Estrelas'])
-      avaliacoes_base.clear()
-      arqcarreg.append(arq)
-      return f"{nAvl} Avaliações foram carregadas"
-    else:
-      return "Arquivo carregado anteriormente"
+    with open(f'{arq}', 'r') as arq_avl:
+      avl_lista = arq_avl.readlines()
+      avl_lista.pop(0)
+      for avl in avl_lista:
+        avl = avl.split(",")
+        titulo = avl[0]
+        avaliacao = int(avl[1].strip("\n"))
+        if avaliacao > 5 or avaliacao < 0:
+          return "Arquivo Incompatível"
+        nAvl += 1
+        avalia_filme(filmes,titulo,avaliacao,main)
+    return f"{nAvl} Avaliações foram carregadas"
   except Exception as e:
     print(f"ERRO-> {e}")
     return carrega_avaliacoes(filmes)
 
 # Atualiza os filmes no arquivo
-def atualiza_filmes(filme,filmes):
+def atualiza_filmes(filme):
   """
   Função: Ao ser adicionado um arquivo de filmes, atualiza esse arquivo salvando todos os filmes que forem cadastrados pelo usuário
 
   Parâmetros:
-  filmes (list): A lista de filmes
+  filme (list): A lista com as informações do filme
 
   Retorna:
   Atualiza o arquivo de filmes a cada novo filme que for cadastrado
   """
   try:
-    filmesArq = []
-    carrega_filmes(filmesArq,'filmes.csv')
-    busca = busca_titulo(filme[0],filmesArq)
-    if busca == None:
-      with open('filmes.csv', 'a', newline='', encoding="utf-8") as arquivo:
-          escritor = csv.writer(arquivo)
-          escritor.writerow(filme)
-          return None
-    else:
-      filmes[-1] = busca
+    with open('filmes.csv', 'a', newline='', encoding="utf-8") as arquivo:
+        escritor = csv.writer(arquivo)
+        escritor.writerow(filme)
+        return None
   except Exception as e:
     return f"ERRO -> {e}"
 
@@ -395,6 +372,8 @@ def atualiza_avaliacoes(titulo,avl):
 
 # Programa Principal: Exibe o menu e executa as opções até o usuário escolher sair
 op = None
+carrega_filmes(filmes,"filmes.csv",True)
+carrega_avaliacoes(filmes,"avaliacoes.csv",True)
 while True:
   try:
     op = mostra_menu(len(filmes))
@@ -407,8 +386,7 @@ while True:
         print("Filme já cadastrado")
         input("[**Tecle enter para voltar ao Menu Principal**]\n")
         continue
-      print(f"{result[0]}")
-      atualiza_filmes(result[1],filmes)
+      print(result)
       input("[**Tecle enter para voltar ao Menu Principal**]\n")
       continue
       
@@ -417,10 +395,7 @@ while True:
 ******* Avaliação de Filme ******
 *********************************""")
       result = (avalia_filme(filmes))
-      titulo = result[1]
-      avl = result[2]
-      atualiza_avaliacoes(titulo,avl)
-      print(result[0])
+      print(result)
       input("[**Tecle enter para voltar ao Menu Principal**]\n")
       continue
     elif op == 3:
@@ -467,12 +442,14 @@ while True:
       result = carrega_filmes(filmes)
       print(result)
       input("""[**Tecle enter para voltar ao Menu Principal**]\n""")
+      if result == 'Filmes carregados com sucesso!':
+        arqFilmes += 1
       continue
     elif op == 8:
       print("""*********** SysFilmes ***********
 ** Carregando avaliações do Arquivo *
 *********************************""")
-      if "filmes.csv"  not in arqcarreg:
+      if arqFilmes  != arqAvls+1:
         print("Carregue Primeiro o Arquivo de Filmes")
         input("""[**Tecle enter para voltar ao Menu Principal**]\n""")
         continue
