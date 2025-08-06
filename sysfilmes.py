@@ -6,6 +6,7 @@
 # Carlos Abimael Oliveira do Nascimento, matrícula 587010
 # João Gabriel dos Santos Araújo, matrícula 582584
 
+# Bibliotecas
 import csv
 import os
 try:
@@ -15,21 +16,20 @@ except ImportError:
     import sys
     subprocess.check_call([sys.executable, "-m", "pip", "install", "unidecode"])
     import unidecode
-try:
-  from IPython.display import clear_output
-except ImportError:
-  # Clear OutPuts for Terminals
-    def clear_output():
-      # Check the operating system name
-      if os.name == 'nt':  # For Windows
-        _ = os.system('cls')
-      else:  # For Linux, macOS, and other Unix-like systems
-        _ = os.system('clear')
-
-
+##############################################
+# Variaveis
 filmes = [] # Lista de filmes cadastrados
-arqFilmes = 0
-arqAvls = 0
+#################################################
+# Funções
+
+# Clear OutPuts for Terminals  
+def clear_output():    
+# Check the operating system name    
+  if os.name == 'nt':  # For Windows     
+     _ = os.system('cls')    
+# For Linux, macOS, and other Unix-like systems
+  else:        
+    _ = os.system('clear')
 
 # Mostrar Menu
 def mostra_menu(total):
@@ -138,8 +138,8 @@ def cria_filme(filmes,titulo=None,ano=None,genero=None,main=False):
              "Número de Avaliações": int(0)}
       filmes.append(filme)
       if main == False:
-        filme = [titulo,int(ano),genero]
-        atualiza_filmes(filme)
+        att = [titulo,int(ano),genero]
+        atualiza_filmes(att)
       return (f"Filme: {titulo} Cadastrado com sucesso")
     return None
   except Exception as e:
@@ -369,6 +369,7 @@ def atualiza_avaliacoes(titulo,avl):
   except Exception as e:
     return f"ERRO -> {e}"
 
+################################################################
 
 # Programa Principal: Exibe o menu e executa as opções até o usuário escolher sair
 op = None
@@ -442,17 +443,11 @@ while True:
       result = carrega_filmes(filmes)
       print(result)
       input("""[**Tecle enter para voltar ao Menu Principal**]\n""")
-      if result == 'Filmes carregados com sucesso!':
-        arqFilmes += 1
       continue
     elif op == 8:
       print("""*********** SysFilmes ***********
 ** Carregando avaliações do Arquivo *
 *********************************""")
-      if arqFilmes  != arqAvls+1:
-        print("Carregue Primeiro o Arquivo de Filmes")
-        input("""[**Tecle enter para voltar ao Menu Principal**]\n""")
-        continue
       result = carrega_avaliacoes(filmes)
       print(result)
       input("""[**Tecle enter para voltar ao Menu Principal**]\n""")
